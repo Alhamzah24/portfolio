@@ -2,14 +2,19 @@
 import { GoogleGenAI } from "@google/genai";
 import { PORTFOLIO_DATA } from "../constants";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-
 export const askAssistant = async (question: string) => {
-  if (!process.env.API_KEY) {
-    return "L'assistant n'est pas configuré. Veuillez vérifier la clé API.";
+  const apiKey = process.env.API_KEY || '';
+  
+  if (!apiKey) {
+    console.error("API Key is missing. Please set GEMINI_API_KEY in Vercel environment variables.");
+    return "L'assistant n'est pas configuré. Veuillez vérifier la clé API (GEMINI_API_KEY).";
   }
 
-  const systemInstruction = `
+  try {
+    // Initialize lazily to prevent crash on startup if key is missing
+    const ai = new GoogleGenAI({ apiKey });
+    
+    const systemInstruction = `
     Tu es l'assistant IA du portfolio de ${PORTFOLIO_DATA.name}. 
     Ton rôle est de répondre aux questions des visiteurs sur son parcours, ses compétences et ses projets.
     
@@ -28,9 +33,8 @@ export const askAssistant = async (question: string) => {
     Réponds de manière professionnelle, chaleureuse et concise. Si on te demande des détails techniques sur EduBot IA, mentionne l'architecture Node/PostgreSQL et la stratégie de prompting (coach IA).
   `;
 
-  try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: question,
       config: {
         systemInstruction,
@@ -42,6 +46,6 @@ export const askAssistant = async (question: string) => {
     return response.text || "Désolé, je n'ai pas pu générer de réponse.";
   } catch (error) {
     console.error("Gemini Error:", error);
-    return "Une erreur s'est produite lors de la communication avec l'assistant.";
+    return "Une erreur s'est produite lors de la communication avec l'assistant. Vérifiez la console pour plus de détails.";
   }
 };
